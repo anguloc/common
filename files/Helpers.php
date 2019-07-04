@@ -1,6 +1,6 @@
 <?php
 
-if(!function_exists('createReturn')){
+if (!function_exists('createReturn')) {
     /**
      * 创建公共返回
      * @param int $code 错误码
@@ -9,7 +9,8 @@ if(!function_exists('createReturn')){
      * @param array $extra 额外数据
      * @return array
      */
-    function createReturn($code = 0, $result = [], $result_code = 0, $extra = []){
+    function createReturn($code = 0, $result = [], $result_code = 0, $extra = [])
+    {
         $response = [
             'code' => $code,
             'result' => $result,
@@ -22,8 +23,9 @@ if(!function_exists('createReturn')){
     }
 }
 
-if(!function_exists('stdout')){
-    function stdout(){
+if (!function_exists('stdout')) {
+    function stdout()
+    {
         $message = func_get_args();
         if (count($message) == 1) {
             $message = $message[0];
@@ -40,5 +42,16 @@ if(!function_exists('stdout')){
                 echo " > $echo\n";
             }
         }
+    }
+}
+
+if (!function_exists('catch_exception')) {
+    function catch_exception(\Exception $exception, $error = '')
+    {
+        $error .= '错误类型：' . get_class($exception) . PHP_EOL;
+        $error .= '错误代码：' . $exception->getCode() . PHP_EOL;
+        $error .= '错误信息：' . $exception->getMessage() . PHP_EOL;
+        $error .= '错误堆栈：' . $exception->getTraceAsString() . PHP_EOL;
+        return $error;
     }
 }
