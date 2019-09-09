@@ -4,12 +4,12 @@ if (!function_exists('create_return')) {
     /**
      * 创建公共返回
      * @param int $code 错误码
-     * @param array $result 返回结果
+     * @param mixed $result 返回结果
      * @param int $result_code 根据业务 细分错误码
      * @param array $extra 额外数据
      * @return array
      */
-    function create_return($code = 0, $result = [], $result_code = 0, $extra = [])
+    function create_return($code = 0, $result = null, $result_code = 0, $extra = [])
     {
         $response = [
             'code' => $code,
