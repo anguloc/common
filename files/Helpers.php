@@ -5,11 +5,11 @@ if (!function_exists('create_return')) {
      * 创建公共返回
      * @param int $code 错误码
      * @param mixed $result 返回结果
-     * @param int $result_code 根据业务 细分错误码
      * @param array $extra 额外数据
+     * @param int $result_code 根据业务 细分错误码
      * @return array
      */
-    function create_return($code = 0, $result = null, $result_code = 0, $extra = [])
+    function create_return($code = 0, $result = null, $extra = [], $result_code = 0)
     {
         $response = [
             'code' => $code,
