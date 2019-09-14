@@ -14,4 +14,4 @@ defined('NOT_DELETE_STATUS') || define('NOT_DELETE_STATUS', 0);
 defined('IS_DELETE_STATUS') || define('IS_DELETE_STATUS', 1);
 
 // url
-defined('IMG_URL') || define('IMG_URL', '//img.gkfk5.cn');
+defined('IMG_URL') || define('IMG_URL', 'http://img.gkfk5.cn');
