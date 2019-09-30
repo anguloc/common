@@ -1,6 +1,6 @@
 <?php
 
-namespace common\rabbitMQ;
+namespace DHelper\RabbitMQ;
 
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Exception\AMQPProtocolChannelException;
@@ -8,24 +8,24 @@ use PhpAmqpLib\Message\AMQPMessage;
 use PhpAmqpLib\Wire\AMQPTable;
 use Exception;
 
-abstract class AbstractRabbitmqTask
+abstract class AbstractRabbitMQTask
 {
-    public static $queue_list = [];
+    protected static $queue_list = [];
 
-    public static $dead_exchanger_type = 'direct';
-    public static $dead_exchanger_name = 'dead_exchanger';
+    protected static $dead_exchanger_type = 'direct';
+    protected static $dead_exchanger_name = 'dead_exchanger';
 
-    public static $exchanger_type        = 'direct';
-    public static $exchanger_passive     = false;
-    public static $exchanger_durable     = true;
-    public static $exchanger_auto_delete = false;
+    protected static $exchanger_type        = 'direct';
+    protected static $exchanger_passive     = false;
+    protected static $exchanger_durable     = true;
+    protected static $exchanger_auto_delete = false;
 
-    public static $queue_passive     = false;
-    public static $queue_durable     = true;
-    public static $queue_auto_delete = false;
-    public static $queue_exclusive   = false;
+    protected static $queue_passive     = false;
+    protected static $queue_durable     = true;
+    protected static $queue_auto_delete = false;
+    protected static $queue_exclusive   = false;
 
-    public static $message_mandatory = true;
+    protected static $message_mandatory = true;
 
     /**
      * @param string $id
@@ -202,40 +202,41 @@ abstract class AbstractRabbitmqTask
         exit;
     }
 
-    public static function addTask($queue_index, $param, $obj_id = '') {
-        if (!is_array($param)) {
-            $param = json_decode($param, 1);
-        }
-        $param['_add_time'] = time();
-        // 传入上下文 LogId
-        $param['context_log_id'] = \Loggers::getInstance("rabbitmq_task")->getLogId();
+    /**
+     * 普通模式  对一个exchange中推一条消息
+     *
+     * @param $exchange_name
+     * @param $param
+     * @return bool
+     */
+    public static function addTask($exchange_name, $param) {
         if (is_array($param)) {
             $param = json_encode($param);
         }
+        $host = HOST_1;
+        $port = PORT_3;
+        $user = USER_1;
+        $pass = PWD_1;
 
-        list($servers, $queue_name, $timeout_queue_name, $exchange_name, $callback, $consumers, $trace, $queue_timeout) = static::getQueueConfig($queue_index);
-        $server = static::selectServer($servers, $obj_id);
-        $host = RabbitmqConfig::$arrServers[$server]['host'];
-        $port = RabbitmqConfig::$arrServers[$server]['port'];
-        $user = RabbitmqConfig::$arrServers[$server]['user'];
-        $pass = RabbitmqConfig::$arrServers[$server]['password'];
+        try {
+            // 同时持久化`交换机`和`消息`，可以大概率保证mq重启或服务器宕机之后，消息不会丢失(如果mq重启或者服务器宕机前没能即时将新的消息持久化，也会造成丢失消息的情况)
+            $connection = new AMQPStreamConnection($host, $port, $user, $pass);
+            $channel = $connection->channel();
+            $channel->exchange_declare($exchange_name, self::$exchanger_type, self::$exchanger_passive, self::$exchanger_durable, self::$exchanger_auto_delete);
 
-        if ($trace) {
-            \Loggers::getInstance("rabbitmq_task")->notice("add rabbitmq task: queue_name={$queue_name} queue_index={$queue_index}, param={$param}, host={$host}");
+            $msg_attr = [];
+            $msg_attr['delivery_mode'] = AMQPMessage::DELIVERY_MODE_PERSISTENT; // 声明消息持久化
+            $msg = new AMQPMessage($param, $msg_attr);
+            $channel->basic_publish($msg, $exchange_name);
+
+            $channel->close();
+            $connection->close();
+        } catch (\Exception $e){
+            // TODO Log
+            return catch_exception($e);
+
+            return false;
         }
-
-        // 同时持久化`交换机`和`消息`，可以大概率保证mq重启或服务器宕机之后，消息不会丢失(如果mq重启或者服务器宕机前没能即时将新的消息持久化，也会造成丢失消息的情况)
-        $connection = new AMQPStreamConnection($host, $port, $user, $pass);
-        $channel = $connection->channel();
-        $channel->exchange_declare($exchange_name, self::$exchanger_type, self::$exchanger_passive, self::$exchanger_durable, self::$exchanger_auto_delete);
-
-        $msg_attr = [];
-        $msg_attr['delivery_mode'] = AMQPMessage::DELIVERY_MODE_PERSISTENT; // 声明消息持久化
-        $msg = new AMQPMessage($param, $msg_attr);
-        $channel->basic_publish($msg, $exchange_name);
-
-        $channel->close();
-        $connection->close();
 
         return true;
     }
@@ -315,5 +316,61 @@ abstract class AbstractRabbitmqTask
         }
 
         return $status;
+    }
+
+    public static function addDeferTask($task_param, $queue_index, $expire) {
+        $param = [
+            'task_param' => $task_param,
+            'queue_index' => $queue_index
+        ];
+
+        if ($expire / 86400 >= 1) {                                              // 倒计时超过一天
+            $param['expire'] = $expire - 86400;
+            $defer_queue_index = self::DO_IN_A_FEW_DAYS;
+        } elseif ($expire / 3600 >= 1) {                                         // 倒计时超过一小时
+            $param['expire'] = $expire - 3600;
+            $defer_queue_index = self::DO_IN_A_FEW_HOURS;
+        } elseif ($expire / 600 >= 1) {                                          // 倒计时超过10分钟
+            $param['expire'] = $expire - 600;
+            $defer_queue_index = self::DO_IN_DOZENS_MINUTES;
+        } else {
+            $param['expire'] = $expire - 60;
+            $defer_queue_index = self::DO_IN_A_FEW_MINUTES;
+        }
+
+        return self::addTask($defer_queue_index, $param);
+    }
+
+    /**
+     * 入队失败会返回bool值
+     *
+     * @param $task_param
+     * @param $queue_index
+     * @param $expire
+     * @return bool
+     */
+    public static function applyDeferTask($task_param, $queue_index, $expire)
+    {
+        $param = [
+            'task_param'    => $task_param,
+            'queue_index'   => $queue_index,
+            'new_method'    => true
+        ];
+
+        if ($expire / 86400 >= 1) {                                              // 倒计时超过一天
+            $param['expire'] = $expire - 86400;
+            $defer_queue_index = self::DO_IN_A_FEW_DAYS;
+        } elseif ($expire / 3600 >= 1) {                                         // 倒计时超过一小时
+            $param['expire'] = $expire - 3600;
+            $defer_queue_index = self::DO_IN_A_FEW_HOURS;
+        } elseif ($expire / 600 >= 1) {                                          // 倒计时超过10分钟
+            $param['expire'] = $expire - 600;
+            $defer_queue_index = self::DO_IN_DOZENS_MINUTES;
+        } else {                                                                 // 倒计时超过1分钟
+            $param['expire'] = $expire - 60;
+            $defer_queue_index = self::DO_IN_A_FEW_MINUTES;
+        }
+
+        return self::publish($defer_queue_index, $param);
     }
 }

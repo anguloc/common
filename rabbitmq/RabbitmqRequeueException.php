@@ -6,7 +6,7 @@
  * Time: 23:23
  */
 
-namespace common\rabbitMQ;
+namespace DHelper\RabbitMQ;
 
 use Exception;
 
