@@ -46,7 +46,7 @@ if (!function_exists('stdout')) {
 }
 
 if (!function_exists('catch_exception')) {
-    function catch_exception(\Exception $exception, $error = '')
+    function catch_exception(\Throwable $exception, $error = '')
     {
         $error .= '错误类型：' . get_class($exception) . PHP_EOL;
         $error .= '错误代码：' . $exception->getCode() . PHP_EOL;
