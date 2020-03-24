@@ -7,8 +7,8 @@
 defined('HOST_1') || define('HOST_1', '127.0.0.1');
 defined('HOST_2') || define('HOST_2', '127.0.0.1');
 
-defined('DOMAIN_1') || define('DOMAIN_1', 'www.gkfk5.cn');
-defined('DOMAIN_2') || define('DOMAIN_2', 'blog.gkfk5.cn');
+defined('DOMAIN_1') || define('DOMAIN_1', 'www');
+defined('DOMAIN_2') || define('DOMAIN_2', 'blog');
 
 // port
 defined('PORT_1') || define('PORT_1', 3306);
