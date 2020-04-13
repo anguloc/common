@@ -45,6 +45,18 @@ if (!function_exists('stdout')) {
     }
 }
 
+if (!function_exists('dump')) {
+    function dump(){
+        stdout(...func_get_args());
+    }
+}
+
+if (!function_exists('dd')) {
+    function dd(){
+        stdout(...func_get_args());
+    }
+}
+
 if (!function_exists('catch_exception')) {
     function catch_exception(\Throwable $exception, $error = '')
     {

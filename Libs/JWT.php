@@ -8,6 +8,11 @@
 
 use ArrayAccess;
 
+/**
+ * 这个是easySwoole的  有些地方没法用composer  就copy过来了
+ *
+ * Class JWT
+ */
 class JWT implements ArrayAccess,JsonSerializable,Serializable
 {
 
@@ -71,7 +76,7 @@ class JWT implements ArrayAccess,JsonSerializable,Serializable
             $this->exp = time() + 7200;
         }
         if(empty($this->jti)){
-            $this->jti = Random::character(10);
+            $this->jti = $this->random(10);
         }
         /*
          * 说明是解包的
@@ -88,6 +93,29 @@ class JWT implements ArrayAccess,JsonSerializable,Serializable
         }
         $this->status = self::STATUS_OK;
     }
+
+    protected function random($length = 6, $alphabet = 'AaBbCcDdEeFfGgHhJjKkMmNnPpQqRrSsTtUuVvWwXxYyZz23456789')
+    {
+        /*
+         * mt_srand() is to fix:
+            mt_rand(0,100);
+            if(pcntl_fork()){
+                var_dump(mt_rand(0,100));
+            }else{
+                var_dump(mt_rand(0,100));
+            }
+         */
+        mt_srand();
+        // 重复字母表以防止生成长度溢出字母表长度
+        if ($length >= strlen($alphabet)) {
+            $rate = intval($length / strlen($alphabet)) + 1;
+            $alphabet = str_repeat($alphabet, $rate);
+        }
+
+        // 打乱顺序返回
+        return substr(str_shuffle($alphabet), 0, $length);
+    }
+
     /**
      * @return mixed
      */

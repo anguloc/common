@@ -1,0 +1,1 @@
+最后用了hyperf里面的amqp组件
