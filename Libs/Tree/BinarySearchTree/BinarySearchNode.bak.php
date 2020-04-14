@@ -3,7 +3,7 @@
 namespace DHelper\Libs\Tree\BinarySearchTree;
 
 
-class BinarySearchNode
+class BinarySearchNodebak
 {
     protected $value;
 
