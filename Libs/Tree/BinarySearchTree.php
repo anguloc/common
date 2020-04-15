@@ -4,7 +4,7 @@ namespace DHelper\Libs\Tree;
 
 /**
  * Class BinarySearchTree
- * @package DHelper\Libs\Tree\BinarySearchTree
+ * @package DHelper\Libs\Tree
  * @method bool insert(int $value)
  * @method Node|null delete(int $value)
  * @method Node|null max()
@@ -300,12 +300,12 @@ class BinarySearchTree implements \JsonSerializable
 
     public function jsonSerialize()
     {
-        return json_encode($this->preOrder());
+        return $this->middleOrder();
     }
 
     public function __toString()
     {
-        return implode(',', $this->preOrder());
+        return implode(',', $this->middleOrder());
     }
 
     /**
@@ -410,7 +410,6 @@ class BinarySearchTree implements \JsonSerializable
     /**
      * 后序遍历
      * 这里用递归
-     * 另外一、
      */
     protected function _afterOrder()
     {
