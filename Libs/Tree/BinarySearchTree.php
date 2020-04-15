@@ -1,8 +1,6 @@
 <?php
 
-namespace DHelper\Libs\Tree\BinarySearchTree;
-
-use DHelper\Libs\Tree\Node;
+namespace DHelper\Libs\Tree;
 
 /**
  * Class BinarySearchTree
@@ -19,8 +17,6 @@ use DHelper\Libs\Tree\Node;
  * @method array afterOrder()
  * @method array levelOrder()
  * @method array levelBottomOrder()
- *
- *
  */
 class BinarySearchTree implements \JsonSerializable
 {
@@ -255,17 +251,51 @@ class BinarySearchTree implements \JsonSerializable
     /**
      * 左旋转
      */
-    protected function _leftRotate()
+    public function leftRotate()
     {
-
+        $this->currentNode == null && $this->currentNode = $this->root;
+        if(($right = $this->currentNode->getRightNode()) == null){
+            return false;
+        }
+        $parent = $this->currentNode->getParentNode();
+        if ($parent == null) {
+            $this->root = $right;
+        } else {
+            if($this->currentNode === $parent->getRightNode()){
+                $parent->setRightNode($right);
+            }else{
+                $parent->setLeftNode($right);
+            }
+        }
+        $this->currentNode->setParentNode($right)->setRightNode($right->getLeftNode());
+        $right->setParentNode($parent)->setLeftNode($this->currentNode);
+        $this->setCurrentNode();
+        return true;
     }
 
     /**
      * 右旋转
      */
-    protected function _rightRotate()
+    public function rightRotate()
     {
-
+        $this->currentNode == null && $this->currentNode = $this->root;
+        if(($left = $this->currentNode->getLeftNode()) == null){
+            return false;
+        }
+        $parent = $this->currentNode->getParentNode();
+        if ($parent == null) {
+            $this->root = $left;
+        } else {
+            if($this->currentNode === $parent->getRightNode()){
+                $parent->setRightNode($left);
+            }else{
+                $parent->setLeftNode($left);
+            }
+        }
+        $this->currentNode->setParentNode($left)->setLeftNode($left->getRightNode());
+        $left->setParentNode($parent)->setRightNode($this->currentNode);
+        $this->setCurrentNode();
+        return true;
     }
 
     public function jsonSerialize()
@@ -552,7 +582,7 @@ class BinarySearchTree implements \JsonSerializable
      * @param Node|null $node
      * @return $this
      */
-    protected function setCurrentNode(Node $node = null)
+    public function setCurrentNode(Node $node = null)
     {
         $this->currentNode = $node;
         return $this;
