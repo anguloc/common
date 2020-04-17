@@ -6,6 +6,14 @@ namespace DHelper\Libs\Tree;
 abstract class Node
 {
 
+    /**
+     * 其实这里可以加上节点所在高度、为左、右、根节点等杂项属性，方便搜索和旋转
+     * 不过这里只是简单实现，就不写那么多了
+     */
+
+    /**
+     * @var int
+     */
     protected $value;
 
     /**

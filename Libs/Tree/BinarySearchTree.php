@@ -34,6 +34,10 @@ class BinarySearchTree implements \JsonSerializable
      */
     protected $currentNode;
 
+    /**
+     * BinarySearchTree constructor.
+     * @param array $data
+     */
     public function __construct($data = [])
     {
         if (empty($data) && $data !== 0) {
@@ -100,6 +104,8 @@ class BinarySearchTree implements \JsonSerializable
                 } else {
                     $this->setCurrentNode($this->currentNode->getRightNode())->_insert($value);
                 }
+            } else {
+                // 这里应该是替换掉原来的节点  不过这里只考虑到树这一层  是否替换都是一样的
             }
         }
         return true;
@@ -138,6 +144,7 @@ class BinarySearchTree implements \JsonSerializable
             if (!$node->getParentNode()) {
                 // 没有父节点 就是root
                 $this->root = null;
+                $this->setCurrentNode();
                 return $node;
             }
             $replace_node = null;
@@ -162,11 +169,18 @@ class BinarySearchTree implements \JsonSerializable
         }
 
         // 修改父节点指向
-        if ($node->getParentNode()->getLeftNode() === $node) {
-            $node->getParentNode()->setLeftNode($replace_node);
+        if ($node->getParentNode()) {
+            if ($node->getParentNode()->getLeftNode() === $node) {
+                $node->getParentNode()->setLeftNode($replace_node);
+            } else {
+                $node->getParentNode()->setRightNode($replace_node);
+            }
         } else {
-            $node->getParentNode()->setRightNode($replace_node);
+            $this->root = $replace_node;
         }
+
+        // 删除完成后 指向被删除元素的父级
+        $this->setCurrentNode($node->getParentNode());
 
         // 返回删除的节点
         return $node->setParentNode()->setLeftNode()->setRightNode();
@@ -253,21 +267,25 @@ class BinarySearchTree implements \JsonSerializable
      */
     public function leftRotate()
     {
+        echo 1;
         $this->currentNode == null && $this->currentNode = $this->root;
-        if(($right = $this->currentNode->getRightNode()) == null){
+        if (($right = $this->currentNode->getRightNode()) == null) {
             return false;
         }
         $parent = $this->currentNode->getParentNode();
         if ($parent == null) {
             $this->root = $right;
         } else {
-            if($this->currentNode === $parent->getRightNode()){
+            if ($this->currentNode === $parent->getRightNode()) {
                 $parent->setRightNode($right);
-            }else{
+            } else {
                 $parent->setLeftNode($right);
             }
         }
         $this->currentNode->setParentNode($right)->setRightNode($right->getLeftNode());
+        if ($right->getLeftNode()) {
+            $right->getLeftNode()->setParentNode($this->currentNode);
+        }
         $right->setParentNode($parent)->setLeftNode($this->currentNode);
         $this->setCurrentNode();
         return true;
@@ -279,20 +297,23 @@ class BinarySearchTree implements \JsonSerializable
     public function rightRotate()
     {
         $this->currentNode == null && $this->currentNode = $this->root;
-        if(($left = $this->currentNode->getLeftNode()) == null){
+        if (($left = $this->currentNode->getLeftNode()) == null) {
             return false;
         }
         $parent = $this->currentNode->getParentNode();
         if ($parent == null) {
             $this->root = $left;
         } else {
-            if($this->currentNode === $parent->getRightNode()){
+            if ($this->currentNode === $parent->getRightNode()) {
                 $parent->setRightNode($left);
-            }else{
+            } else {
                 $parent->setLeftNode($left);
             }
         }
         $this->currentNode->setParentNode($left)->setLeftNode($left->getRightNode());
+        if ($left->getRightNode()) {
+            $left->getRightNode()->setParentNode($this->currentNode);
+        }
         $left->setParentNode($parent)->setRightNode($this->currentNode);
         $this->setCurrentNode();
         return true;
@@ -590,7 +611,7 @@ class BinarySearchTree implements \JsonSerializable
     public function __call($name, $args)
     {
         if (method_exists($this, '_' . $name) && is_callable([$this, $name])) {
-            $this->setCurrentNode($this->root);
+            $this->currentNode === null && $this->setCurrentNode($this->root);
             $result = $this->{'_' . $name}(...$args);
             $this->setCurrentNode();
             return $result;
