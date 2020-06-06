@@ -8,56 +8,93 @@ use PhpAmqpLib\Message\AMQPMessage;
 use PhpAmqpLib\Wire\AMQPTable;
 use Exception;
 
+/**
+ *
+ *
+ * Class AbstractRabbitMQTask
+ */
 abstract class AbstractRabbitMQTask
 {
     protected static $queue_list = [];
 
-    protected static $dead_exchanger_type = 'direct';
-    protected static $dead_exchanger_name = 'dead_exchanger';
+    protected static $deadExchangerType = 'direct';
+    protected static $deadExchangerName = 'dead_exchanger';
 
-    protected static $exchanger_type        = 'direct';
-    protected static $exchanger_passive     = false;
-    protected static $exchanger_durable     = true;
-    protected static $exchanger_auto_delete = false;
+    protected static $exchangerType        = 'direct';
+    protected static $exchangerPassive     = false;
+    protected static $exchangerDurable     = true;
+    protected static $exchangerAutoDelete = false;
 
-    protected static $queue_passive     = false;
-    protected static $queue_durable     = true;
-    protected static $queue_auto_delete = false;
-    protected static $queue_exclusive   = false;
+    protected static $queuePassive     = false;
+    protected static $queueDurable     = true;
+    protected static $queueAutoDelete = false;
+    protected static $queueExclusive   = false;
 
-    protected static $message_mandatory = true;
+    protected static $messageMandatory = true;
 
-    /**
-     * @param string $id
-     */
-    public static function getQueueConfig($queue_index) {
-        $servers = static::$queue_list[$queue_index]['servers'] ?: [RabbitmqConfig::DEFAULT_SERVER];
-        $queue_name = static::$queue_list[$queue_index]['queue'];
-        $timeout_queue_name = isset(static::$queue_list[$queue_index]['timeout_queue'])? static::$queue_list[$queue_index]['timeout_queue']: "";
-        $queue_timeout = isset(static::$queue_list[$queue_index]['queue_timeout'])? static::$queue_list[$queue_index]['queue_timeout']: -1;
-        $consumers = isset(static::$queue_list[$queue_index]['consumers'])? static::$queue_list[$queue_index]['consumers']: 1;
-        $exchange_name = static::$queue_list[$queue_index]['exchange'];
-        $callback = static::$queue_list[$queue_index]['callback'];
-        $trace = isset(static::$queue_list[$queue_index]['trace'])? static::$queue_list[$queue_index]['trace']: true;
-        return [$servers, $queue_name, $timeout_queue_name, $exchange_name, $callback, $consumers, $trace, $queue_timeout];
-    }
 
-    /**
-     * @param string|int $id
-     */
-    public static function selectServer($servers, $id = '') {
-        if (empty($servers)) {
-            return RabbitmqConfig::DEFAULT_SERVER;
+    public static function start()
+    {
+        //$host = '0.0.0.0';
+        //$port = 5672;
+        //$user = 'guest';
+        //$pass = 'guest';
+
+        $connection = new AMQPStreamConnection($host, $port, $user, $pass);
+        $channel = $connection->channel();
+
+        $channel->exchange_declare(self::$deadExchangerName, self::$deadExchangerType, self::$exchangerPassive, self::$exchangerDurable, self::$exchangerAutoDelete);
+
+        $channel->exchange_declare($exchange_name, self::$exchangerType, self::$exchangerPassive, self::$exchangerDurable, self::$exchangerAutoDelete);
+        $channel->queue_declare($queue_name, self::$queuePassive, self::$queueDurable, false, self::$queueAutoDelete);
+        $channel->queue_bind($queue_name, $exchange_name);
+
+//        if (empty($timeout_queue_name)) {
+//
+//        } else if ($queue_timeout != -1) {  // 如果有 dead queue，且 timeout 的定义不为空
+//            // 定义超时删除并自动进入死信(超时)队列的消息属性
+//            $route_key = $queue_name;
+//            $queue_args = new AMQPTable([
+//                'x-message-ttl' => $queue_timeout,
+//                'x-dead-letter-exchange' => self::$deadExchangerName,
+//                'x-dead-letter-routing-key' => $route_key
+//            ]);
+//
+//            $channel->queue_declare($queue_name, self::$queuePassive, self::$queueDurable, false, self::$queueAutoDelete, false, $queue_args);
+//            $channel->queue_declare($timeout_queue_name, self::$queuePassive, self::$queueDurable, false, self::$queueAutoDelete);  // 声明一个延时队列
+//
+//            $channel->queue_bind($queue_name, $exchange_name);
+//            $channel->queue_bind($timeout_queue_name, self::$deadExchangerName, $route_key);  // 绑定死信（超时）队列的路径
+//        }
+
+
+        $channel->basic_qos(null, 1, null); // 设置一次只从queue取一条信息，在该信息处理完（消费者没有发送ack给mq），queue将不会推送信息给该消费者
+
+        // no_ack:false 表示该队列的信息必须接收到消费者信号才能被删除
+        // 消费者从queue拿到信息之后，该信息不会从内存中删除，需要消费者处理完之后发送信号通知mq去删除消息（如果没此通知，queue会不断积累旧的信息不会删除）
+        // 超时队列：推送message到消息队列，但不主动去该队列获取message,等到ttl超时，自动进入绑定的死信队列，在死信队列处理业务
+        $channel->basic_consume($queue_name, '', false, false, false, false, function ($msg) use ($callback, $channel,  $queue_name) {
+            try {
+                call_user_func($callback, $msg->body);
+            } catch (ReQueueException $queue_exception) {  // 重新入队（该消息的 handler 会重新运行）
+                // TODO log
+                $channel->basic_nack($msg->delivery_info['delivery_tag'], false, true); // 发送信号提醒mq该消息不能被删除，且重新入队列
+                return;
+            } catch (Exception $e) {
+                self::log("rabbitmq task catch error: [queue_name {$queue_name}] {$msg->body}, exception: {$e->getFile()} {$e->getLine()} {$e->getMessage()}");
+            }
+            $channel->basic_ack($msg->delivery_info['delivery_tag']);   // 发送信号提醒mq可删除该信息
+        });
+
+        while (count($channel->callbacks)) {
+            $channel->wait();
         }
 
-        if (empty($id)) {
-            $id = time();
-        }
-        $index = (crc32($id) % count($servers));
-        return $servers[$index];
+        $channel->close();
+        $connection->close();
     }
 
-    public static function start_listen_queue($queue_index) {
+    public static function start1($queue_index) {
         // 修改错误级别
         $parent_error_reporting = error_reporting();
 
@@ -151,7 +188,7 @@ abstract class AbstractRabbitMQTask
             ]);
 
             $channel->queue_declare($queue_name, self::$queue_passive, self::$queue_durable, false, self::$queue_auto_delete, false, $queue_args);
-            $channel->queue_declare($timeout_queue_name, self::$queue_passive, self::$queue_durable, false, self::$queue_auto_delete);  // 声明一个延时队列
+            $channel->queue_declare($timeout_queue_name, self::$queue_passive, self::$queue_durable, false, self::$queueAuto_delete);  // 声明一个延时队列
 
             $channel->queue_bind($queue_name, $exchange_name);
             $channel->queue_bind($timeout_queue_name, self::$dead_exchanger_name, $route_key);  // 绑定死信（超时）队列的路径
@@ -171,13 +208,11 @@ abstract class AbstractRabbitMQTask
                 if ((is_bool($res) && $res == false) || (is_array($res) && $res['status'] != 0)) {
                     \Loggers::getInstance('rabbitmq_task')->warning("rabbitmq task run error: {$msg->body}, res: " . json_encode($res));
                 }
-            } catch (RabbitmqRequeueException $queue_exception) {  // 重新入队（该消息的 handler 会重新运行）
-                \Loggers::getInstance('rabbitmq_task')->warning("rabbitmq task requeue: [queue_name {$queue_name}] {$msg->body}");
+            } catch (ReQueueException $e) {  // 重新入队（该消息的 handler 会重新运行）
                 $channel->basic_nack($msg->delivery_info['delivery_tag'], false, true); // 发送信号提醒mq该消息不能被删除，且重新入队列
                 return;
             } catch (Exception $e) {
-                $exceptionInfoStr = "{$e->getFile()} {$e->getLine()} {$e->getMessage()}";
-                \Loggers::getInstance('rabbitmq_task')->warning("rabbitmq task catch error: [queue_name {$queue_name}] {$msg->body}, exception: {$exceptionInfoStr}");
+                self::log("rabbitmq task catch error: [queue_name {$queue_name}] {$msg->body}, exception: {$e->getFile()} {$e->getLine()} {$e->getMessage()}");
             }
             $channel->basic_ack($msg->delivery_info['delivery_tag']);   // 发送信号提醒mq可删除该信息
         };
@@ -372,5 +407,10 @@ abstract class AbstractRabbitMQTask
         }
 
         return self::publish($defer_queue_index, $param);
+    }
+
+    protected static function log($msg)
+    {
+
     }
 }

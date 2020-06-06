@@ -46,13 +46,15 @@ if (!function_exists('stdout')) {
 }
 
 if (!function_exists('dump')) {
-    function dump(){
+    function dump()
+    {
         stdout(...func_get_args());
     }
 }
 
 if (!function_exists('dd')) {
-    function dd(){
+    function dd()
+    {
         stdout(...func_get_args());
     }
 }
@@ -65,5 +67,22 @@ if (!function_exists('catch_exception')) {
         $error .= '错误信息：' . $exception->getMessage() . PHP_EOL;
         $error .= '错误堆栈：' . $exception->getTraceAsString() . PHP_EOL;
         return $error;
+    }
+}
+
+if (!function_exists('get_type')) {
+    /**
+     * 自带的gettype不好用
+     *
+     * @param mixed $var
+     * @return string
+     */
+    function get_type($var)
+    {
+        if (is_object($var)) {
+            return get_class($var) . '|object';
+        } else {
+            return gettype($var);
+        }
     }
 }

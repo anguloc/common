@@ -19,7 +19,7 @@ defined('PORT_5') || define('PORT_5', 9001);
 defined('PORT_6') || define('PORT_6', 9501);
 defined('PORT_7') || define('PORT_7', 22222);
 defined('PORT_8') || define('PORT_8', 9502);
-defined('PORT_9') || define('PORT_9', '');
+defined('PORT_9') || define('PORT_9', 9503);
 defined('PORT_10') || define('PORT_10', '');
 
 // username

@@ -1,1 +1,1 @@
-最后用了hyperf里面的amqp组件
+对direct简单封装 这里只是测试用
