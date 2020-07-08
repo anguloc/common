@@ -4,22 +4,39 @@ if (!function_exists('create_return')) {
     /**
      * 创建公共返回
      * @param int $code 错误码
-     * @param mixed $result 返回结果
+     * @param mixed $data 返回结果
      * @param array $extra 额外数据
-     * @param int $result_code 根据业务 细分错误码
+     * @param int $msg_code 根据业务 细分错误码
      * @return array
      */
-    function create_return($code = 0, $result = null, $extra = [], $result_code = 0)
+    function create_return($code = 0, $data = null, $extra = [], $msg_code = 0)
     {
         $response = [
             'code' => $code,
-            'result' => $result,
-            'result_code' => $result_code,
+            'data' => $data,
+            'msg_code' => $msg_code,
         ];
         if ($extra) {
             $response = array_merge($response, $extra);
         }
         return $response;
+    }
+}
+
+if (!function_exists('check_return')) {
+    /**
+     * 检查公共返回
+     *
+     * @param $result
+     * @return bool
+     */
+    function check_return($result)
+    {
+        if (isset($result['code']) && $result['code'] == SUCCESS_CODE) {
+            return true;
+        }
+
+        return false;
     }
 }
 

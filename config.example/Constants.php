@@ -9,6 +9,7 @@ defined('HOST_2') || define('HOST_2', '127.0.0.1');
 
 defined('DOMAIN_1') || define('DOMAIN_1', 'www');
 defined('DOMAIN_2') || define('DOMAIN_2', 'blog');
+defined('DOMAIN_3') || define('DOMAIN_3', 'ws');
 
 // port
 defined('PORT_1') || define('PORT_1', 3306);

@@ -53,7 +53,7 @@ class BalanceBinaryTree extends BinarySearchTree
     /**
      * 旋转至平衡 这里只考虑简单实现 不准备优化
      */
-    public function _rotateToBalance()
+    protected function _rotateToBalance()
     {
         $ll = $lr = $rl = $rr = -1;
         $root = $this->currentNode === null ? $this->root : $this->currentNode;
