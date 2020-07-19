@@ -81,34 +81,37 @@ class BinarySearchTree implements \JsonSerializable
      * 插入节点
      *
      * @param int $value
-     * @return bool
+     * @return Node|bool
      */
-    protected function _insert($value): bool
+    protected function _insert($value)
     {
         if (empty($value) && $value !== 0 || !is_numeric($value)) {
             return false;
         }
 
         if ($this->root == null) {
-            $this->root = $this->createNode($value);
+            return $this->root = $this->currentNode = $this->createNode($value);
         } else {
             if ($value < $this->currentNode->getValue()) {
                 if ($this->currentNode->getLeftNode() == null) {
-                    $this->currentNode->setLeftNode($this->createNode($value, $this->currentNode));
+                    $node = $this->createNode($value, $this->currentNode);
+                    $this->currentNode->setLeftNode($node);
                 } else {
-                    $this->setCurrentNode($this->currentNode->getLeftNode())->_insert($value);
+                    return $this->setCurrentNode($this->currentNode->getLeftNode())->_insert($value);
                 }
             } elseif ($value > $this->currentNode->getValue()) {
                 if ($this->currentNode->getRightNode() == null) {
-                    $this->currentNode->setRightNode($this->createNode($value, $this->currentNode));
+                    $node = $this->createNode($value, $this->currentNode);
+                    $this->currentNode->setRightNode($node);
                 } else {
-                    $this->setCurrentNode($this->currentNode->getRightNode())->_insert($value);
+                    return $this->setCurrentNode($this->currentNode->getRightNode())->_insert($value);
                 }
             } else {
                 // 这里应该是替换掉原来的节点  不过这里只考虑到树这一层  是否替换都是一样的
+                $node = $this->currentNode;
             }
         }
-        return true;
+        return $node;
     }
 
     /**
@@ -179,8 +182,9 @@ class BinarySearchTree implements \JsonSerializable
             $this->root = $replace_node;
         }
 
-        // 删除完成后 指向被删除元素的父级
-        $this->setCurrentNode($node->getParentNode());
+        // 删除完成后 指向替换元素 或 删除元素父级元素
+        $current = $replace_node ?? $node->getParentNode();
+        $this->setCurrentNode($current);
 
         // 返回删除的节点
         return $node->setParentNode()->setLeftNode()->setRightNode();
@@ -267,7 +271,6 @@ class BinarySearchTree implements \JsonSerializable
      */
     public function leftRotate()
     {
-        echo 1;
         $this->currentNode == null && $this->currentNode = $this->root;
         if (($right = $this->currentNode->getRightNode()) == null) {
             return false;
@@ -326,7 +329,54 @@ class BinarySearchTree implements \JsonSerializable
 
     public function __toString()
     {
-        return implode(',', $this->middleOrder());
+        $res = "";
+        if ($this->root === null) {
+            return $res;
+        }
+
+        $height = $this->height();
+        $weight = pow(2, $height - 1);
+
+        $queue = new \SplQueue();
+        $queue->enqueue($this->root);
+
+        $draw = function ($arr) use ($weight) {
+            $len = 4 * $weight - 1;
+            $num = count($arr);
+            $glue = array_fill(0, $len, '    ');
+
+            foreach ($arr as $k => $item) {
+                $index = floor($len * ($k + 1) / ($num + 1));
+                if (is_numeric($index)) {
+                    $glue[$index] = str_pad($item, 4, ' ', STR_PAD_BOTH);
+                }
+            }
+
+            return implode('', $glue) . PHP_EOL;
+        };
+
+        $i = 0;
+        while (!$queue->isEmpty()) {
+            $i++;
+            if ($i > $height) {
+                break;
+            }
+            $count = $queue->count();
+            $tmp = [];
+            for ($j = 0; $j < $count; $j++) {
+                $node = $queue->dequeue();
+                if ($node instanceof Node) {
+                    $tmp = array_merge($tmp, [$node->getValue()]);
+                    $queue->enqueue($node->getLeftNode() ?? -1);
+                    $queue->enqueue($node->getRightNode() ?? -1);
+                } else {
+                    $tmp = array_merge($tmp, ['null']);
+                }
+            }
+            $res .= call_user_func($draw, $tmp);
+        }
+        $res = nl2br($res);
+        return rtrim($res);
     }
 
     /**

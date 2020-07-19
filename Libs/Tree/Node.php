@@ -22,12 +22,12 @@ abstract class Node
     protected $leftNode;
 
     /**
-     * @var self
+     * @var static
      */
     protected $rightNode;
 
     /**
-     * @var self
+     * @var static
      */
     protected $parentNode;
 
