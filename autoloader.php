@@ -1,8 +1,11 @@
 <?php
 
-require_once __DIR__ . '/config/Constants.php';
+if (is_file('/config/Constants.php')) {
+    require_once __DIR__ . '/config/Constants.php';
+}
 require_once __DIR__ . '/files/Constants.php';
 require_once __DIR__ . '/files/Helpers.php';
+require_once __DIR__ . '/files/Collect.php';
 
 //function commonLibAutoLoader($class_name)
 //{
