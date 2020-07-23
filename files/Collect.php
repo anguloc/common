@@ -11,52 +11,45 @@ if (!function_exists('base32_encode')) {
     {
         // base32 A - Z  2 - 7  ->  65 - 90  50 - 55
         $output = '';
-
-
-
-
-        $len = 0;
-        $bit = 0;
-        $a = $b = $c = $d = $e = [];
+        $bytes = $len = 0;
         for ($i = 0; $i < strlen($input); $i++) {
-            $bit <<= 8;
-            $a[] = $ascii = ord($input[$i]);
-//        $output .= $ascii & 0xf8; // 拿前5位
-
-            $b[] = $ascii & 0xf8;
-            $c[] = $ascii & 0x7;
-            $f = $ascii >> 3;
-            $s = $ascii << 5;
-
-            if ($f < 26) {
-
-            } elseif ($f >= 26 && $f <= 31) {
-
-            } else {
-                return false;
-            }
-
-
+            $bytes <<= 8;
+            $bytes += ord($input[$i]);
             $len += 8;
-            // 这里可能会循环两次
-            while($bit >= 5){
-                $bit -= 5;
+            // 这里最多循环三次
+            while ($len >= 5) {
+                // 取前5位
+                $len -= 5;
+                $ascii = $bytes >> $len;
+                $output .= $ascii < 26 ? chr($ascii + 65) : chr($ascii + 24);
 
+                // 去掉前5位
+                $bytes &= ((1 << $len) - 1);
             }
-
-
         }
 
-        print_r($a);
-        print_r($b);
-        print_r($c);
-        print_r($d);
+        if ($len > 0) {
+            $bytes <<= (5 - $len);
+            $output .= $bytes < 26 ? chr($bytes + 65) : chr($bytes + 24);
+            // 8 16 24 32  补等号
+            if ($len == 1) {
+                $output .= "====";
+            } elseif ($len == 2) {
+                $output .= "=";
+            } elseif ($len == 3) {
+                $output .= "======";
+            } else {
+                $output .= "===";
+            }
+        }
+
 
         return $output;
     }
 }
 
-function asd($input){
+function asdasdasdsa($input)
+{
     $BASE32_ALPHABET = 'abcdefghijklmnopqrstuvwxyz234567';
     $output = '';
     $v = 0;
@@ -85,29 +78,58 @@ function asd($input){
 if (!function_exists('base32_decode')) {
     function base32_decode($input)
     {
-        $input = strtolower($input);
+        $input = strtoupper(rtrim($input, '='));
         $output = '';
-        $v = 0;
-        $vbits = 0;
+        $bytes = 0;
+        $len = 0;
 
         for ($i = 0, $j = strlen($input); $i < $j; $i++) {
-            $v <<= 5;
-            if ($input[$i] >= 'a' && $input[$i] <= 'z') {
-                $v += (ord($input[$i]) - 97);
+            $bytes <<= 5;
+            if ($input[$i] >= 'A' && $input[$i] <= 'Z') {
+                $bytes += (ord($input[$i]) - 65);
             } elseif ($input[$i] >= '2' && $input[$i] <= '7') {
-                $v += (24 + $input[$i]);
+                $bytes += (ord($input[$i]) - 24);
             } else {
-                echo 23123;
-                die(1);
+                echo 123;
+                return false;
             }
 
-            $vbits += 5;
-            while ($vbits >= 8) {
-                $vbits -= 8;
-                $output .= chr($v >> $vbits);
-                $v &= ((1 << $vbits) - 1);
+            $len += 5;
+            while ($len >= 8) {
+                $len -= 8;
+                $output .= chr($bytes >> $len);
+                $bytes &= ((1 << $len) - 1);
             }
         }
         return $output;
     }
+}
+
+
+function base32_desdfsdfcode($input)
+{
+    $input = strtolower($input);
+    $output = '';
+    $v = 0;
+    $vbits = 0;
+
+    for ($i = 0, $j = strlen($input); $i < $j; $i++) {
+        $v <<= 5;
+        if ($input[$i] >= 'a' && $input[$i] <= 'z') {
+            $v += (ord($input[$i]) - 97);
+        } elseif ($input[$i] >= '2' && $input[$i] <= '7') {
+            $v += (24 + $input[$i]);
+        } else {
+            echo 23123;
+            die(1);
+        }
+
+        $vbits += 5;
+        while ($vbits >= 8) {
+            $vbits -= 8;
+            $output .= chr($v >> $vbits);
+            $v &= ((1 << $vbits) - 1);
+        }
+    }
+    return $output;
 }
