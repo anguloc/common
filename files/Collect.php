@@ -63,7 +63,6 @@ if (!function_exists('base32_decode')) {
             } elseif ($input[$i] >= '2' && $input[$i] <= '7') {
                 $bytes += (ord($input[$i]) - 24);
             } else {
-                echo 123;
                 return false;
             }
 
