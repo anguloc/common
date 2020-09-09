@@ -1,6 +1,6 @@
 <?php
 
-if (is_file('/config/Constants.php')) {
+if (is_file(__DIR__ . '/config/Constants.php')) {
     require_once __DIR__ . '/config/Constants.php';
 }
 require_once __DIR__ . '/files/Constants.php';

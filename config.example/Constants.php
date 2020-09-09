@@ -21,7 +21,11 @@ defined('PORT_6') || define('PORT_6', 9501);
 defined('PORT_7') || define('PORT_7', 22222);
 defined('PORT_8') || define('PORT_8', 9502);
 defined('PORT_9') || define('PORT_9', 9503);
-defined('PORT_10') || define('PORT_10', '');
+defined('PORT_10') || define('PORT_10', 9504);
+defined('PORT_11') || define('PORT_11', '');
+defined('PORT_12') || define('PORT_12', '');
+defined('PORT_13') || define('PORT_13', '');
+defined('PORT_14') || define('PORT_14', '');
 
 // username
 defined('USER_1') || define('USER_1', '');
